@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("kotlin-kapt")
-    id("dagger.hilt.android.plugin")
+    alias(libs.plugins.dagger.hilt.android)
 }
 
 android {
@@ -53,12 +53,17 @@ dependencies {
     implementation(libs.androidx.material3)
 
     //Dagger Hilt
-    implementation("com.google.dagger:hilt-android:2.44")
-    kapt("com.google.dagger:hilt-android-compiler:2.44")
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.android.compiler)
 
     //LiveData
-    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.3.1")
+    implementation(libs.androidx.lifecycle.livedata.ktx)
     implementation(libs.androidx.runtime.livedata)
+
+    //RoomFlow
+    implementation(libs.androidx.room.runtime)
+    kapt(libs.androidx.room.compiler)
+    implementation(libs.androidx.room.ktx)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
