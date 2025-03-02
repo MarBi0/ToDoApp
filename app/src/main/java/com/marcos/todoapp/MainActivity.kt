@@ -25,10 +25,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             ToDoAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    TasksScreen(Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                        ,taskViewModel)
+                    TasksScreen(
+                        Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding), taskViewModel
+                    )
                 }
             }
         }

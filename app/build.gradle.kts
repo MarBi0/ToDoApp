@@ -56,6 +56,10 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.44")
     kapt("com.google.dagger:hilt-android-compiler:2.44")
 
+    //LiveData
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.3.1")
+    implementation(libs.androidx.runtime.livedata)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
