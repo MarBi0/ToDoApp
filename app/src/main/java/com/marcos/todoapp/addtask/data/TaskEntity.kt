@@ -9,4 +9,5 @@ data class TaskEntity(
     val id: Int,
     val task: String,
     var selected: Boolean = false,
+    var order: Int = 0
 )

@@ -1,7 +1,6 @@
 package com.marcos.todoapp.addtask.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,9 +13,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
@@ -33,7 +32,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,6 +40,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.marcos.todoapp.addtask.ui.model.TaskModel
+import org.burnoutcrew.reorderable.ReorderableItem
+import org.burnoutcrew.reorderable.ReorderableLazyListState
+import org.burnoutcrew.reorderable.detectReorderAfterLongPress
+import org.burnoutcrew.reorderable.rememberReorderableLazyListState
+import org.burnoutcrew.reorderable.reorderable
 
 @Composable
 fun TasksScreen(modifier: Modifier, taskViewModel: TasksViewModel) {
@@ -62,9 +65,11 @@ fun TasksScreen(modifier: Modifier, taskViewModel: TasksViewModel) {
         is TaskUiState.Error -> {
 
         }
+
         TaskUiState.Loading -> {
             CircularProgressIndicator()
         }
+
         is TaskUiState.Success -> {
             Box(modifier = modifier.fillMaxSize()) {
                 AddTaskDialog(
@@ -72,7 +77,7 @@ fun TasksScreen(modifier: Modifier, taskViewModel: TasksViewModel) {
                     onDismiss = { taskViewModel.onDialogClose() },
                     onTaskAdded = { taskViewModel.onTaskCreate(it) })
                 FabDialog(Modifier.align(Alignment.BottomEnd), taskViewModel)
-                TaskList( (uiState as TaskUiState.Success).tasks, taskViewModel )
+                TaskList((uiState as TaskUiState.Success).tasks, taskViewModel)
             }
         }
     }
@@ -82,30 +87,53 @@ fun TasksScreen(modifier: Modifier, taskViewModel: TasksViewModel) {
 
 @Composable
 fun TaskList(tasks: List<TaskModel>, taskViewModel: TasksViewModel) {
-
-    LazyColumn {
-        items(tasks, key = { it.id }) { task ->
-            ItemTask(task, taskViewModel)
+    val state = rememberReorderableLazyListState(
+        onMove = { from, to ->
+            taskViewModel.onTaskReordered(from.index, to.index)
+        })
+    LazyColumn(
+        state = state.listState,
+        modifier = Modifier
+            .fillMaxWidth()
+            .reorderable(state)
+    ) {
+        items(
+            items = tasks,
+            key = { it.id }
+        ) { task ->
+            ReorderableItem(
+                state,
+                key = task.id,
+                defaultDraggingModifier = Modifier
+            ) { isDragging ->
+                ItemTask(task, taskViewModel, state)
+            }
         }
     }
 }
 
 @Composable
-fun ItemTask(taskModel: TaskModel, taskViewModel: TasksViewModel) {
+fun ItemTask(
+    taskModel: TaskModel,
+    taskViewModel: TasksViewModel,
+    state: ReorderableLazyListState,
+) {
     Card(
         Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .pointerInput(Unit) {
-                detectTapGestures(onLongPress = {
-                    taskViewModel.onItemRemove(taskModel)
-                })
-            },
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 6.dp
-        )
     ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "Arrastrar",
+                modifier = Modifier
+                    .padding(8.dp)
+                    .detectReorderAfterLongPress(state)
+            )
             Text(
                 text = taskModel.task, modifier = Modifier
                     .weight(1f)
