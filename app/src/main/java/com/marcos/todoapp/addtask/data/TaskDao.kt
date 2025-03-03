@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TaskDao {
-    @Query("SELECT * FROM task_entity")
+    @Query("SELECT * FROM task_entity ORDER BY `order` ASC")
     fun getTasks(): Flow<List<TaskEntity>>
 
     @Insert
@@ -20,5 +20,7 @@ interface TaskDao {
 
     @Delete
     suspend fun deleteTask(item: TaskEntity)
-
+    
+    @Query("SELECT MAX(`order`) FROM task_entity")
+    suspend fun getMaxOrder(): Int?
 }

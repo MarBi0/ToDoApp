@@ -10,10 +10,15 @@ import javax.inject.Singleton
 class TaskRepository @Inject constructor(private val taskDao: TaskDao) {
 
     val tasks: Flow<List<TaskModel>> =
-        taskDao.getTasks().map { items -> items.map { TaskModel(it.id, it.task, it.selected) } }
+        taskDao.getTasks().map { items -> 
+            items.map { TaskModel(it.id, it.task, it.selected, it.order) }
+                .sortedBy { it.order }
+        }
 
     suspend fun add(taskModel: TaskModel) {
-        taskDao.addTask(taskModel.toData())
+        // Asignar el orden más alto + 1 para nuevas tareas
+        val maxOrder = taskDao.getMaxOrder() ?: 0
+        taskDao.addTask(taskModel.copy(order = maxOrder + 1).toData())
     }
 
     suspend fun update(taskModel: TaskModel) {
@@ -23,9 +28,14 @@ class TaskRepository @Inject constructor(private val taskDao: TaskDao) {
     suspend fun delete(taskModel: TaskModel) {
         taskDao.deleteTask(taskModel.toData())
     }
-
+    
+    suspend fun updateTasksOrder(tasks: List<TaskModel>) {
+        tasks.forEachIndexed { index, task ->
+            taskDao.updateTask(task.copy(order = index).toData())
+        }
+    }
 }
 
 fun TaskModel.toData(): TaskEntity {
-    return TaskEntity(this.id, this.task, this.selected)
+    return TaskEntity(this.id, this.task, this.selected, this.order)
 }
