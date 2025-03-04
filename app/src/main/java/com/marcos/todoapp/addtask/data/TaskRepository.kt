@@ -16,7 +16,6 @@ class TaskRepository @Inject constructor(private val taskDao: TaskDao) {
         }
 
     suspend fun add(taskModel: TaskModel) {
-        // Asignar el orden más alto + 1 para nuevas tareas
         val maxOrder = taskDao.getMaxOrder() ?: 0
         taskDao.addTask(taskModel.copy(order = maxOrder + 1).toData())
     }

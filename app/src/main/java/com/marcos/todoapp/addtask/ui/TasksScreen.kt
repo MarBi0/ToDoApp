@@ -1,7 +1,8 @@
 package com.marcos.todoapp.addtask.ui
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,42 +13,45 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.NavHostController
 import com.marcos.todoapp.addtask.ui.model.TaskModel
 import org.burnoutcrew.reorderable.ReorderableItem
 import org.burnoutcrew.reorderable.ReorderableLazyListState
-import org.burnoutcrew.reorderable.detectReorderAfterLongPress
+import org.burnoutcrew.reorderable.detectReorder
 import org.burnoutcrew.reorderable.rememberReorderableLazyListState
 import org.burnoutcrew.reorderable.reorderable
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun TasksScreen(modifier: Modifier, taskViewModel: TasksViewModel) {
+fun TasksScreen(
+    modifier: Modifier,
+    taskViewModel: TasksViewModel,
+    navigationController: NavHostController
+) {
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val uiState by produceState<TaskUiState>(
         initialValue = TaskUiState.Loading,
@@ -59,8 +63,6 @@ fun TasksScreen(modifier: Modifier, taskViewModel: TasksViewModel) {
         }
     }
 
-    val showDialog: Boolean by taskViewModel.showDialog.observeAsState(false)
-
     when (uiState) {
         is TaskUiState.Error -> {
 
@@ -71,32 +73,93 @@ fun TasksScreen(modifier: Modifier, taskViewModel: TasksViewModel) {
         }
 
         is TaskUiState.Success -> {
-            Box(modifier = modifier.fillMaxSize()) {
-                AddTaskDialog(
-                    showDialog,
-                    onDismiss = { taskViewModel.onDialogClose() },
-                    onTaskAdded = { taskViewModel.onTaskCreate(it) })
-                FabDialog(Modifier.align(Alignment.BottomEnd), taskViewModel)
-                TaskList((uiState as TaskUiState.Success).tasks, taskViewModel)
+            Scaffold(modifier = modifier, topBar = { TopBar(navController = navigationController) }) {
+                Column(modifier = modifier.fillMaxSize()) {
+                    TaskList((uiState as TaskUiState.Success).tasks, taskViewModel)
+                }
             }
         }
     }
+}
 
+@Composable
+fun AddTask(taskViewModel: TasksViewModel) {
+    Row(modifier = Modifier
+        .fillMaxWidth()
+        .padding(16.dp)
+        .clickable {
+            taskViewModel.onTaskCreate("")
+        }) {
+        Spacer(
+            modifier = Modifier
+                .size(36.dp)
+        )
+        Icon(
+            imageVector = Icons.Default.Add,
+            contentDescription = "Add Task",
+            modifier = Modifier
+                .padding(horizontal = 8.dp)
+        )
+        Text(
+            text = "Elemento de lista",
+            fontSize = 16.sp,
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 8.dp)
+        )
+    }
+}
 
+@Composable
+fun TopBar(navController: NavHostController) {
+    Row {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "Ir atras",
+            modifier = Modifier
+                .padding(16.dp)
+                .clickable { navController.popBackStack() }
+        )
+    }
 }
 
 @Composable
 fun TaskList(tasks: List<TaskModel>, taskViewModel: TasksViewModel) {
     val state = rememberReorderableLazyListState(
         onMove = { from, to ->
-            taskViewModel.onTaskReordered(from.index, to.index)
+            taskViewModel.onTaskReordered(from.index - 1 , to.index - 1)
         })
+
     LazyColumn(
         state = state.listState,
         modifier = Modifier
             .fillMaxWidth()
             .reorderable(state)
     ) {
+        item {
+            TextField(
+                readOnly = false,
+                value = "",
+                onValueChange = { },
+                placeholder = { Text("Título", color = Color.Gray, fontSize = 24.sp) },
+                singleLine = true,
+                maxLines = 1,
+                colors = TextFieldDefaults.colors(
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent,
+                    errorIndicatorColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedContainerColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent,
+                    errorContainerColor = Color.Transparent
+                ),
+                textStyle = TextStyle(MaterialTheme.colorScheme.onBackground, 24.sp),
+                modifier = Modifier
+                    .padding(horizontal = 8.dp),
+            )
+        }
+
         items(
             items = tasks,
             key = { it.id }
@@ -109,6 +172,8 @@ fun TaskList(tasks: List<TaskModel>, taskViewModel: TasksViewModel) {
                 ItemTask(task, taskViewModel, state)
             }
         }
+
+        item { AddTask(taskViewModel) }
     }
 }
 
@@ -121,73 +186,45 @@ fun ItemTask(
     Card(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Row(
-            Modifier.fillMaxWidth(),
+            Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.background),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Default.MoreVert,
+                imageVector = Icons.Default.DragIndicator,
                 contentDescription = "Arrastrar",
                 modifier = Modifier
                     .padding(8.dp)
-                    .detectReorderAfterLongPress(state)
-            )
-            Text(
-                text = taskModel.task, modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 8.dp)
+                    .detectReorder(state)
             )
             Checkbox(
                 checked = taskModel.selected,
                 onCheckedChange = { taskViewModel.onCheckBoxSelected(taskModel) })
-        }
-    }
-}
-
-@Composable
-fun FabDialog(modifier: Modifier, taskViewModel: TasksViewModel) {
-    FloatingActionButton(
-        onClick = { taskViewModel.onShowDialogClick() }, modifier = modifier
-            .padding(16.dp)
-    ) {
-        Icon(Icons.Filled.Add, contentDescription = "Add")
-    }
-}
-
-@Composable
-fun AddTaskDialog(show: Boolean, onDismiss: () -> Unit, onTaskAdded: (String) -> Unit) {
-    var myTask by remember { mutableStateOf("") }
-    if (show) {
-        Dialog(onDismissRequest = { onDismiss() }) {
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .background(color = MaterialTheme.colorScheme.background)
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = "Añade tu tarea",
-                    fontSize = 18.sp,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.size(16.dp))
-                TextField(
-                    value = myTask,
-                    onValueChange = { myTask = it },
-                    singleLine = true,
-                    maxLines = 1
-                )
-                Spacer(modifier = Modifier.size(16.dp))
-                Button(onClick = {
-                    onTaskAdded(myTask)
-                    myTask = ""
-                }, modifier = Modifier.fillMaxWidth()) {
-                    Text(text = "Añadir tarea")
-                }
-            }
+            TextField(
+                readOnly = taskModel.selected,
+                value = taskModel.task,
+                onValueChange = { },
+                singleLine = true,
+                maxLines = 1,
+                colors = TextFieldDefaults.colors(
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent,
+                    errorIndicatorColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedContainerColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent,
+                    errorContainerColor = Color.Transparent
+                ),
+                textStyle = TextStyle(MaterialTheme.colorScheme.onBackground, 16.sp),
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 8.dp),
+            )
         }
     }
 }

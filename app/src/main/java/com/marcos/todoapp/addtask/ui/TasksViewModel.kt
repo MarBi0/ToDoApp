@@ -1,8 +1,5 @@
 package com.marcos.todoapp.addtask.ui
 
-import androidx.compose.runtime.mutableStateListOf
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.marcos.todoapp.addtask.data.TaskRepository
@@ -42,24 +39,10 @@ class TasksViewModel @Inject constructor(
         .catch { Error(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Loading)
 
-    private val _showDialog = MutableLiveData<Boolean>()
-    val showDialog: LiveData<Boolean> = _showDialog
-
-
-    fun onDialogClose() {
-        _showDialog.value = false
-    }
-
     fun onTaskCreate(task: String) {
-        _showDialog.value = false
-
         viewModelScope.launch {
             addTasksUseCase(TaskModel(task = task))
         }
-    }
-
-    fun onShowDialogClick() {
-        _showDialog.value = true
     }
 
     fun onCheckBoxSelected(taskModel: TaskModel) {
@@ -79,10 +62,8 @@ class TasksViewModel @Inject constructor(
         val movedItem = currentList.removeAt(fromIndex)
         currentList.add(toIndex, movedItem)
         
-        // Actualizar la lista en la UI inmediatamente
         _taskList.update { currentList }
         
-        // Persistir el nuevo orden en la base de datos
         viewModelScope.launch {
             taskRepository.updateTasksOrder(currentList)
         }
